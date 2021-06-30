@@ -1,5 +1,5 @@
 {
-  "name": "fastify-plugin-template",
+  "name": "@autotelic/mercurius-postgraphile",
   "version": "0.0.0",
   "description": "Plugin for fastify",
   "main": "index.js",
@@ -15,22 +15,33 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/autotelic/fastify-plugin-template.git"
+    "url": "git+https://github.com/autotelic/mercurius-postgraphile.git"
   },
-  "keywords": [],
+  "keywords": [
+    "graphql",
+    "mercurius",
+    "fastify",
+    "postgraphile",
+    "plugin"
+  ],
   "author": "Autotelic Development Ltd <info@autotelic.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/autotelic/fastify-plugin-template/issues"
+    "url": "https://github.com/autotelic/mercurius-postgraphile/issues"
   },
-  "homepage": "https://github.com/autotelic/fastify-plugin-template#readme",
+  "homepage": "https://github.com/autotelic/mercurius-postgraphile#readme",
   "dependencies": {
-    "fastify-plugin": "^3.0.0"
+    "@graphql-tools/delegate": "^7.1.5",
+    "@graphql-tools/stitch": "^7.5.3",
+    "fastify-plugin": "^3.0.0",
+    "postgraphile": "^4.12.3"
   },
   "devDependencies": {
     "tap": "^15.0.6",
     "fastify": "^3.0.0",
     "fastify-cli": "^2.5.1",
+    "mercurius": "^7.9.1",
+    "pg": "^8.6.0",
     "standard": "^16.0.3",
     "lint-staged": "^10.2.11"
   },
