@@ -1,55 +1,89 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const { createPostGraphileSchema } = require('postgraphile')
+const { execute } = require('graphql')
+const { createPostGraphileSchema, withPostGraphileContext } = require('postgraphile')
 const { stitchSchemas } = require('@graphql-tools/stitch')
-const { delegateToSchema } = require('@graphql-tools/delegate')
 
-async function mercuriusPostgraphile (fastify, opts) {
+async function mercuriusPostGraphile (fastify, opts) {
   const { graphql } = fastify
+
   const {
     connectionString,
-    pgClient,
-    instanceName = 'public'
+    instanceName = 'public',
+    localStitchOpts = {},
+    pgPool,
+    postGraphileContextOpts = {},
+    postGraphileSchemaOpts = {},
+    postGraphileStitchOpts = {}
   } = opts
 
-  const postgraphileSchema = await createPostGraphileSchema(
+  if (!connectionString) {
+    throw new Error('Missing connectionString in options')
+  }
+
+  if (!pgPool) {
+    throw new Error('Missing pgPool in options')
+  }
+
+  const postGraphileSchema = await createPostGraphileSchema(
     connectionString,
-    instanceName
+    instanceName,
+    {
+      subscriptions: true,
+      dynamicJson: true,
+      setofFunctionsContainNulls: false,
+      ignoreRBAC: false,
+      ignoreIndexes: false,
+      legacyRelations: 'omit',
+      ...postGraphileSchemaOpts
+    }
   )
 
-  function createProxyingResolverWithPGClient ({
-    subschemaConfig,
-    operation,
-    transforms,
-    transformedSchema
+  const getContextOpts = typeof postGraphileContextOpts === 'function' ? postGraphileContextOpts : () => postGraphileContextOpts
+
+  const { jwtSecret, pgDefaultRole } = postGraphileSchemaOpts
+
+  async function postGraphileExecutor ({
+    document,
+    variables,
+    context,
+    rootValue,
+    operationName
   }) {
-    return (_parent, _args, context, info) => delegateToSchema({
-      schema: subschemaConfig,
-      operation,
-      context: {
-        ...context,
-        pgClient
-      },
-      info,
-      transformedSchema
+    return await withPostGraphileContext({
+      pgPool,
+      jwtSecret,
+      pgDefaultRole,
+      ...getContextOpts(context)
+    }, async (pgContext) => {
+      return await execute(
+        postGraphileSchema,
+        document,
+        rootValue,
+        { ...context, ...pgContext },
+        variables,
+        operationName
+      )
     })
   }
 
   graphql.replaceSchema(stitchSchemas({
-    // TODO(jkirkpatrick24): We need to allow the passing of schema stitching arguments.
-    // Additionally we could leverage mercurius-remote-schema here to handle the stitching.
     subschemas: [
       {
-        schema: postgraphileSchema,
-        createProxyingResolver: createProxyingResolverWithPGClient
+        schema: postGraphileSchema,
+        executor: postGraphileExecutor,
+        ...postGraphileStitchOpts
       },
-      graphql.schema
+      {
+        schema: graphql.schema,
+        ...localStitchOpts
+      }
     ]
   }))
 }
 
-module.exports = fp(mercuriusPostgraphile, {
+module.exports = fp(mercuriusPostGraphile, {
   name: 'mercurius-postgraphile',
   dependencies: ['mercurius']
 })
