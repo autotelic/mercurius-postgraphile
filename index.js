@@ -1,21 +1,38 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const { createPostGraphileSchema } = require('postgraphile')
+const { createPostGraphileSchema, withPostGraphileContext } = require('postgraphile')
 const { stitchSchemas } = require('@graphql-tools/stitch')
 const { delegateToSchema } = require('@graphql-tools/delegate')
+const DEFAULT_INFLECTOR = require('@graphile-contrib/pg-simplify-inflector')
 
 async function mercuriusPostgraphile (fastify, opts) {
   const { graphql } = fastify
   const {
     connectionString,
     pgClient,
-    instanceName = 'public'
+    instanceName = 'public',
+    transformsOpts,
+    mergeOpts
   } = opts
+
+
+  const defaultSettings = {
+    subscriptions: true,
+    watchPg: true,
+    dynamicJson: true,
+    setofFunctionsContainNulls: false,
+    ignoreRBAC: false,
+    ignoreIndexes: false,
+    appendPlugins: [DEFAULT_INFLECTOR],
+    enableQueryBatching: true,
+    legacyRelations: 'omit'
+  }
 
   const postgraphileSchema = await createPostGraphileSchema(
     connectionString,
-    instanceName
+    instanceName,
+    defaultSettings
   )
 
   function createProxyingResolverWithPGClient ({
@@ -24,25 +41,29 @@ async function mercuriusPostgraphile (fastify, opts) {
     transforms,
     transformedSchema
   }) {
-    return (_parent, _args, context, info) => delegateToSchema({
+    return (_parent, _args, context, info) => withPostGraphileContext(
+    {
+      pgPool: pgClient,
+      // jwtToken: jwtToken,
+      // jwtSecret: "...",
+      // pgDefaultRole: "..."
+    }, (pgContext) =>
+      delegateToSchema({
       schema: subschemaConfig,
       operation,
-      context: {
-        ...context,
-        pgClient
-      },
+      context: {...context, ...pgContext},
       info,
       transformedSchema
-    })
+    }))
   }
 
   graphql.replaceSchema(stitchSchemas({
-    // TODO(jkirkpatrick24): We need to allow the passing of schema stitching arguments.
-    // Additionally we could leverage mercurius-remote-schema here to handle the stitching.
     subschemas: [
       {
         schema: postgraphileSchema,
-        createProxyingResolver: createProxyingResolverWithPGClient
+        createProxyingResolver: createProxyingResolverWithPGClient,
+        transforms: transformsOpts,
+        merge: mergeOpts
       },
       graphql.schema
     ]
