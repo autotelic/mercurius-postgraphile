@@ -43,7 +43,7 @@
     "mercurius": "^7.9.1",
     "pg": "^8.6.0",
     "standard": "^16.0.3",
-    "lint-staged": "^10.2.11"
+    "lint-staged": "^11.0.0"
   },
   "lint-staged": {
     "*.{js,jsx}": [
