@@ -11,6 +11,7 @@ async function mercuriusPostgraphile (fastify, opts) {
   const { graphql } = fastify
   const {
     connectionString,
+    graphileContextOpts = {},
     graphileSchemaOpts = {},
     instanceName = 'public',
     mergeOpts = {},
@@ -56,7 +57,12 @@ async function mercuriusPostgraphile (fastify, opts) {
         schema: postgraphileSchema,
         createProxyingResolver: createProxyingResolverWithPGClient,
         executor: async ({ document, variables }) => {
-          const runner = await makeQueryRunner(postgraphileSchema, pgClient)
+          const runner = await makeQueryRunner({
+            schema: postgraphileSchema,
+            pgClient,
+            graphileContextOpts,
+            graphileSchemaOpts
+          })
           return runner(print(document), variables)
         },
         transforms: transformsOpts,
