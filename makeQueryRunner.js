@@ -3,34 +3,18 @@
 const { graphql } = require('graphql')
 const { withPostGraphileContext } = require('postgraphile')
 
-async function makeQueryRunner (opts) {
-  const {
-    schema,
-    pgClient,
-    graphileContextOpts,
-    graphileSchemaOpts
-  } = opts
-
-  const getContextOpts = typeof graphileContextOpts === 'function' ? graphileContextOpts : () => graphileContextOpts
-
-  const { jwtSecret, pgDefaultRole } = graphileSchemaOpts
-
-  return async (graphqlQuery, variables = {}) => (
-    withPostGraphileContext({
-      pgClient,
-      jwtSecret,
-      pgDefaultRole,
-      ...getContextOpts(context)
-    }, async (context) => (
-      graphql(
+async function makeQueryRunner (schema, pgPool) {
+  return async (graphqlQuery, variables = {}) => {
+    return await withPostGraphileContext({ pgPool }, async (context) => {
+      return await graphql(
         schema,
         graphqlQuery,
         null,
         { ...context },
         variables
       )
-    ))
-  )
+    })
+  }
 }
 
 module.exports = { makeQueryRunner }

@@ -4,14 +4,12 @@ const fp = require('fastify-plugin')
 const { print } = require('graphql')
 const { createPostGraphileSchema } = require('postgraphile')
 const { stitchSchemas } = require('@graphql-tools/stitch')
-const { delegateToSchema } = require('@graphql-tools/delegate')
 const { makeQueryRunner } = require('./makeQueryRunner.js')
 
 async function mercuriusPostgraphile (fastify, opts) {
   const { graphql } = fastify
   const {
     connectionString,
-    graphileContextOpts = {},
     graphileSchemaOpts = {},
     instanceName = 'public',
     mergeOpts = {},
@@ -32,45 +30,19 @@ async function mercuriusPostgraphile (fastify, opts) {
       ...graphileSchemaOpts
     }
   )
-
-  function createProxyingResolverWithPGClient ({
-    subschemaConfig,
-    operation,
-    transforms,
-    transformedSchema
-  }) {
-    return (_parent, _args, context, info) => delegateToSchema({
-      schema: subschemaConfig,
-      operation,
-      context: {
-        ...context,
-        pgClient
-      },
-      info,
-      transformedSchema
-    })
-  }
-
   graphql.replaceSchema(stitchSchemas({
     subschemas: [
       {
         schema: postgraphileSchema,
-        createProxyingResolver: createProxyingResolverWithPGClient,
         executor: async ({ document, variables }) => {
-          const runner = await makeQueryRunner({
-            schema: postgraphileSchema,
-            pgClient,
-            graphileContextOpts,
-            graphileSchemaOpts
-          })
+          const runner = await makeQueryRunner(postgraphileSchema, pgClient)
           return runner(print(document), variables)
         },
         transforms: transformsOpts,
         merge: mergeOpts
       },
       graphql.schema
-    ],
-    mergeTypes: true
+    ]
   }))
 }
 
