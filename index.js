@@ -1,52 +1,63 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const { createPostGraphileSchema } = require('postgraphile')
+const { createPostGraphileSchema, withPostGraphileContext } = require('postgraphile')
 const { stitchSchemas } = require('@graphql-tools/stitch')
-const { delegateToSchema } = require('@graphql-tools/delegate')
 
 async function mercuriusPostgraphile (fastify, opts) {
   const { graphql } = fastify
   const {
     connectionString,
-    pgClient,
-    instanceName = 'public'
+    graphileSchemaOpts = {},
+    graphileContextOpts = {},
+    instanceName = 'public',
+    mergeOpts,
+    pgPool,
+    transformsOpts
   } = opts
 
   const postgraphileSchema = await createPostGraphileSchema(
     connectionString,
-    instanceName
+    instanceName,
+    {
+      subscriptions: true,
+      dynamicJson: true,
+      setofFunctionsContainNulls: false,
+      ignoreRBAC: false,
+      ignoreIndexes: false,
+      legacyRelations: 'omit',
+      ...graphileSchemaOpts
+    }
   )
 
-  function createProxyingResolverWithPGClient ({
-    subschemaConfig,
-    operation,
-    transforms,
-    transformedSchema
-  }) {
-    return (_parent, _args, context, info) => delegateToSchema({
-      schema: subschemaConfig,
-      operation,
-      context: {
-        ...context,
-        pgClient
-      },
-      info,
-      transformedSchema
-    })
-  }
-
   graphql.replaceSchema(stitchSchemas({
-    // TODO(jkirkpatrick24): We need to allow the passing of schema stitching arguments.
-    // Additionally we could leverage mercurius-remote-schema here to handle the stitching.
     subschemas: [
       {
         schema: postgraphileSchema,
-        createProxyingResolver: createProxyingResolverWithPGClient
+        transforms: transformsOpts,
+        merge: mergeOpts
       },
       graphql.schema
     ]
   }))
+
+  const getContextOpts = typeof graphileContextOpts === 'function' ? graphileContextOpts : () => graphileContextOpts
+
+  const { jwtSecret, pgDefaultRole } = graphileSchemaOpts
+
+  function wrappedExecutor (source, context, variables, operationName) {
+    return withPostGraphileContext(
+      {
+        pgPool,
+        jwtSecret,
+        pgDefaultRole,
+        ...getContextOpts(context)
+      },
+      (pgContext) => graphql(source, { ...context, ...pgContext }, variables, operationName)
+    )
+  }
+
+  fastify.graphql = wrappedExecutor
 }
 
 module.exports = fp(mercuriusPostgraphile, {
