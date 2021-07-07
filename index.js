@@ -56,10 +56,8 @@ async function mercuriusPostgraphile (fastify, opts) {
         schema: postgraphileSchema,
         createProxyingResolver: createProxyingResolverWithPGClient,
         executor: async ({ document, variables }) => {
-          const query = print(document)
           const runner = await makeQueryRunner(postgraphileSchema, pgClient)
-          const result = await runner(query, variables)
-          return result
+          return runner(print(document), variables)
         },
         transforms: transformsOpts,
         merge: mergeOpts
