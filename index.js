@@ -5,6 +5,8 @@ const { createPostGraphileSchema, withPostGraphileContext } = require('postgraph
 const { stitchSchemas } = require('@graphql-tools/stitch')
 const { delegateToSchema } = require('@graphql-tools/delegate')
 const DEFAULT_INFLECTOR = require('@graphile-contrib/pg-simplify-inflector')
+const { print } = require('graphql')
+const { makeQueryRunner } = require('./QueryRunner.js')
 
 async function mercuriusPostgraphile (fastify, opts) {
   const { graphql } = fastify
@@ -13,26 +15,24 @@ async function mercuriusPostgraphile (fastify, opts) {
     pgClient,
     instanceName = 'public',
     transformsOpts,
-    mergeOpts
+    mergeOpts,
+    graphileOpts = {
+      subscriptions: true,
+      watchPg: true,
+      dynamicJson: true,
+      setofFunctionsContainNulls: false,
+      ignoreRBAC: false,
+      ignoreIndexes: false,
+      appendPlugins: [DEFAULT_INFLECTOR],
+      enableQueryBatching: true,
+      legacyRelations: 'omit'
+    }
   } = opts
-
-
-  const defaultSettings = {
-    subscriptions: true,
-    watchPg: true,
-    dynamicJson: true,
-    setofFunctionsContainNulls: false,
-    ignoreRBAC: false,
-    ignoreIndexes: false,
-    appendPlugins: [DEFAULT_INFLECTOR],
-    enableQueryBatching: true,
-    legacyRelations: 'omit'
-  }
 
   const postgraphileSchema = await createPostGraphileSchema(
     connectionString,
     instanceName,
-    defaultSettings
+    graphileOpts
   )
 
   function createProxyingResolverWithPGClient ({
@@ -42,19 +42,19 @@ async function mercuriusPostgraphile (fastify, opts) {
     transformedSchema
   }) {
     return (_parent, _args, context, info) => withPostGraphileContext(
-    {
-      pgPool: pgClient,
+      {
+        pgPool: pgClient
       // jwtToken: jwtToken,
       // jwtSecret: "...",
       // pgDefaultRole: "..."
-    }, (pgContext) =>
-      delegateToSchema({
-      schema: subschemaConfig,
-      operation,
-      context: {...context, ...pgContext},
-      info,
-      transformedSchema
-    }))
+      }, (pgContext) =>
+        delegateToSchema({
+          schema: subschemaConfig,
+          operation,
+          context: { ...context, ...pgContext },
+          info,
+          transformedSchema
+        }))
   }
 
   graphql.replaceSchema(stitchSchemas({
@@ -62,11 +62,18 @@ async function mercuriusPostgraphile (fastify, opts) {
       {
         schema: postgraphileSchema,
         createProxyingResolver: createProxyingResolverWithPGClient,
+        executor: async ({ document, variables }) => {
+          const query = print(document)
+          const runner = await makeQueryRunner(postgraphileSchema, pgClient)
+          const result = await runner.query(query, variables)
+          return result
+        },
         transforms: transformsOpts,
         merge: mergeOpts
       },
       graphql.schema
-    ]
+    ],
+    mergeTypes: true
   }))
 }
 
