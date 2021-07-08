@@ -30,7 +30,7 @@ async function mercuriusPostgraphile (fastify, opts) {
     }
   )
 
-  const getContextOpts = typeof graphileContextOpts === 'function' ? postgraphileContextOpts : () => postgraphileContextOpts
+  const getContextOpts = typeof postgraphileContextOpts === 'function' ? postgraphileContextOpts : () => postgraphileContextOpts
 
   const { jwtSecret, pgDefaultRole } = postgraphileSchemaOpts
 
