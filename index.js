@@ -1,20 +1,19 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const { print } = require('graphql')
-const { createPostGraphileSchema } = require('postgraphile')
+const { execute } = require('graphql')
+const { createPostGraphileSchema, withPostGraphileContext } = require('postgraphile')
 const { stitchSchemas } = require('@graphql-tools/stitch')
-const { makeQueryRunner } = require('./makeQueryRunner.js')
 
 async function mercuriusPostgraphile (fastify, opts) {
-  const { graphql } = fastify
   const {
     connectionString,
-    graphileSchemaOpts = {},
     instanceName = 'public',
-    mergeOpts = {},
-    pgClient,
-    transformsOpts,
+    localStitchOpts = {},
+    pgPool,
+    postgraphileContextOpts = {},
+    postgraphileSchemaOpts = {},
+    postgraphileStitchOpts = {}
   } = opts
 
   const postgraphileSchema = await createPostGraphileSchema(
@@ -27,21 +26,49 @@ async function mercuriusPostgraphile (fastify, opts) {
       ignoreRBAC: false,
       ignoreIndexes: false,
       legacyRelations: 'omit',
-      ...graphileSchemaOpts
+      ...postgraphileSchemaOpts
     }
   )
-  graphql.replaceSchema(stitchSchemas({
+
+  const getContextOpts = typeof postgraphileContextOpts === 'function' ? postgraphileContextOpts : () => postgraphileContextOpts
+
+  const { jwtSecret, pgDefaultRole } = postgraphileSchemaOpts
+
+  async function postgraphileExecutor ({
+    document,
+    variables,
+    context,
+    rootValue,
+    operationName
+  }) {
+    return await withPostGraphileContext({
+      pgPool,
+      jwtSecret,
+      pgDefaultRole,
+      ...getContextOpts(context)
+    }, async (pgContext) => {
+      return await execute(
+        postgraphileSchema,
+        document,
+        rootValue,
+        { ...context, ...pgContext },
+        variables,
+        operationName
+      )
+    })
+  }
+
+  fastify.graphql.replaceSchema(stitchSchemas({
     subschemas: [
       {
         schema: postgraphileSchema,
-        executor: async ({ document, variables }) => {
-          const runner = await makeQueryRunner(postgraphileSchema, pgClient)
-          return runner(print(document), variables)
-        },
-        transforms: transformsOpts,
-        merge: mergeOpts
+        executor: postgraphileExecutor,
+        ...postgraphileStitchOpts
       },
-      graphql.schema
+      {
+        schema: fastify.graphql.schema,
+        ...localStitchOpts
+      }
     ]
   }))
 }
