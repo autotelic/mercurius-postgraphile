@@ -34,7 +34,13 @@ async function mercuriusPostgraphile (fastify, opts) {
 
   const { jwtSecret, pgDefaultRole } = postgraphileSchemaOpts
 
-  async function postgraphileExecutor ({ document, variables, context }) {
+  async function postgraphileExecutor ({
+    document,
+    variables,
+    context,
+    rootValue,
+    operationName
+  }) {
     return await withPostGraphileContext({
       pgPool,
       jwtSecret,
@@ -44,9 +50,10 @@ async function mercuriusPostgraphile (fastify, opts) {
       return await execute(
         postgraphileSchema,
         document,
-        null,
+        rootValue,
         { ...context, ...pgContext },
-        variables
+        variables,
+        operationName
       )
     })
   }
