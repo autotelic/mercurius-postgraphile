@@ -90,3 +90,29 @@ test('Stitches postgraphile and local subschemas', async (t) => {
 
   t.same(actual, expected)
 })
+
+test('plugin registers with context function', async (t) => {
+  const service = Fastify()
+
+  const connectionString = 'postgres://postgres:postgres@0.0.0.0:5432/postgres?sslmode=disable'
+
+  t.teardown(async () => {
+    await pgPool.end()
+    await service.close()
+  })
+
+  service.register(mercurius, {
+    schema,
+    resolvers
+  })
+
+  const pgPool = new Pool({ connectionString })
+
+  service.register(plugin, {
+    connectionString,
+    pgPool,
+    postgraphileContextOpts: () => {}
+  })
+
+  await t.resolves(service.ready())
+})
