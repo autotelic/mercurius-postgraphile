@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "tap --100 -j1 -R classic",
-    "example": "echo no example provided",
+    "example": "fastify start -w -l info -P ./example/index.js",
     "lint": "standard",
     "fix": "npm run lint -- --fix",
     "validate": "npm run lint && npm run test"
@@ -36,13 +36,14 @@
     "postgraphile": "^4.12.3"
   },
   "devDependencies": {
-    "tap": "^15.0.6",
+    "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
     "fastify": "^3.0.0",
     "fastify-cli": "^2.5.1",
+    "lint-staged": "^10.2.11",
     "mercurius": "^7.9.1",
     "pg": "^8.6.0",
     "standard": "^16.0.3",
-    "lint-staged": "^10.2.11"
+    "tap": "^15.0.6"
   },
   "lint-staged": {
     "*.{js,jsx}": [
