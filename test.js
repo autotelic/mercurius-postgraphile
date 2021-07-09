@@ -53,7 +53,7 @@ test('Stitches postgraphile and local subschemas', async (t) => {
 
   service.register(plugin, {
     connectionString,
-    pgClient: pgPool
+    pgPool
   })
 
   await service.ready()
