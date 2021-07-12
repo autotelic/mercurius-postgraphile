@@ -23,12 +23,12 @@ const resolvers = {
   }
 }
 
-test('Stitches postgraphile and local subschemas', async (t) => {
+test('Stitches postgraphile and local subschemas', async ({ teardown, same }) => {
   const service = Fastify()
 
   const connectionString = 'postgres://postgres:postgres@0.0.0.0:5432/postgres?sslmode=disable'
 
-  t.teardown(async () => {
+  teardown(async () => {
     await pgPool.end()
     await service.close()
   })
@@ -53,7 +53,7 @@ test('Stitches postgraphile and local subschemas', async (t) => {
 
   service.register(plugin, {
     connectionString,
-    pgClient: pgPool
+    pgPool
   })
 
   await service.ready()
@@ -88,5 +88,82 @@ test('Stitches postgraphile and local subschemas', async (t) => {
     }
   }
 
-  t.same(actual, expected)
+  same(actual, expected)
+})
+
+test('plugin registers with context function', async ({ teardown, ok, equal }) => {
+  const service = Fastify()
+
+  const connectionString = 'postgres://postgres:postgres@0.0.0.0:5432/postgres?sslmode=disable'
+
+  teardown(async () => {
+    await pgPool.end()
+    await service.close()
+  })
+
+  service.register(mercurius, {
+    schema,
+    resolvers
+  })
+
+  const pgPool = new Pool({ connectionString })
+
+  service.register(plugin, {
+    connectionString,
+    pgPool,
+    postGraphileContextOpts: () => {}
+  })
+
+  try {
+    service.ready()
+  } catch (error) {
+    ok(error)
+    equal(error.message, 'Missing connectionString in options')
+  }
+})
+
+test('plugin error without connectString option', async ({ teardown, rejects }) => {
+  const service = Fastify()
+
+  const connectionString = 'postgres://postgres:postgres@0.0.0.0:5432/postgres?sslmode=disable'
+
+  teardown(async () => {
+    await pgPool.end()
+    await service.close()
+  })
+
+  service.register(mercurius, {
+    schema,
+    resolvers
+  })
+
+  const pgPool = new Pool({ connectionString })
+
+  service.register(plugin, { pgPool })
+
+  await rejects(service.ready())
+})
+
+test('plugin error without pgPool option', async ({ teardown, ok, equal }) => {
+  const service = Fastify()
+
+  const connectionString = 'postgres://postgres:postgres@0.0.0.0:5432/postgres?sslmode=disable'
+
+  teardown(async () => {
+    await service.close()
+  })
+
+  service.register(mercurius, {
+    schema,
+    resolvers
+  })
+
+  service.register(plugin, { connectionString })
+
+  try {
+    service.ready()
+  } catch (error) {
+    ok(error)
+    equal(error.message, 'Missing pgPool in options')
+  }
 })
