@@ -38,9 +38,9 @@ module.exports = async function (fastify, options) {
 | `pgPool` | **Required** | Object | - | A client or pool instance that will be passed to the [pg](https://node-postgres.com/) library and used to connect to a PostgreSQL backend. |
 | `instanceName` | Optional | String | `public` | A string which specifies the PostgreSQL schema that PostGraphile will use to create a GraphQL schema. |
 | `localStitchOpts` | Optional | Object | `{}` | An object containing local subschema config options. |
-| `postgraphileStitchOpts` | Optional | Object | `{}` | An object containing PostGraphile subschema config options. `stitchOpts` for both the local and PostGraphile schemas implement the `SubschemaConfig` interface. [Documention can be found here](https://www.graphql-tools.com/docs/stitch-combining-schemas#subschema-configs) |
-| `postgraphileContextOpts` | Optional | Object/Function | `{}` | An object or callback function containing `withPostGraphileContext` options, outlined [here](https://www.graphile.org/postgraphile/usage-schema/#api-withpostgraphilecontextoptions-callback) |
-| `postgraphileSchemaOpts` | Optional | Object | `{}` | An object containing `createPostGraphileSchema` options, outlined [here](https://www.graphile.org/postgraphile/usage-schema/#api-createpostgraphileschemapgconfig-schemaname-options) |
+| `postGraphileStitchOpts` | Optional | Object | `{}` | An object containing PostGraphile subschema config options. `stitchOpts` for both the local and PostGraphile schemas implement the `SubschemaConfig` interface. [Documention can be found here](https://www.graphql-tools.com/docs/stitch-combining-schemas#subschema-configs) |
+| `postGraphileContextOpts` | Optional | Object/Function | `{}` | An object or callback function containing `withPostGraphileContext` options, outlined [here](https://www.graphile.org/postgraphile/usage-schema/#api-withpostgraphilecontextoptions-callback) |
+| `postGraphileSchemaOpts` | Optional | Object | `{}` | An object containing `createPostGraphileSchema` options, outlined [here](https://www.graphile.org/postgraphile/usage-schema/#api-createpostgraphileschemapgconfig-schemaname-options) |
 
 ## Example
 
