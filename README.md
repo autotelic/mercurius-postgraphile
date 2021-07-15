@@ -6,7 +6,8 @@
 
 - [Usage](#usage)
 - [API](#api)
-- [Example](#example)
+- [Run the Example](#run-the-example)
+- [Resources](#resources)
 
 ## Usage
 
@@ -42,10 +43,48 @@ module.exports = async function (fastify, options) {
 | `postGraphileContextOpts` | Optional | Object/Function | `{}` | An object or callback function containing `withPostGraphileContext` options, outlined [here](https://www.graphile.org/postgraphile/usage-schema/#api-withpostgraphilecontextoptions-callback) |
 | `postGraphileSchemaOpts` | Optional | Object | `{}` | An object containing `createPostGraphileSchema` options, outlined [here](https://www.graphile.org/postgraphile/usage-schema/#api-createpostgraphileschemapgconfig-schemaname-options) |
 
-## Example
+## Run the Example
+
+#### Install Dependencies and Run a Local Postgres Container
 
 ```sh
 npm i
 docker-compose up -d
-npm run test
 ```
+
+#### Run the server
+
+```sh
+npm run example
+```
+
+#### Make Requests to the Server
+
+```sh
+http :3000/graphql
+http POST :3000/graphql
+```
+
+#### Explore Graphiql
+
+[http://localhost:3000/graphiql](http://localhost:3000/graphiql)
+
+The `user` query from PostGraphile and the `localUser` query from Mercurius are used to merge the `User` type. Check out the [example](https://github.com/autotelic/mercurius-postgraphile/tree/main/example/index.js) to explore the stitch options implemented in merging the local and PostGraphile schemas.
+
+```gql
+query {
+  user(id: 1) {
+    username
+    verified
+  }
+  localUser(id: 1) {
+    username
+    verified
+  }
+}
+```
+
+## Resources
+
+- [Schema-Only PostGraphile](https://www.graphile.org/postgraphile/usage-schema/)
+- [Schema Stitching](https://www.graphql-tools.com/docs/stitch-combining-schemas)
