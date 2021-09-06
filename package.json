@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/autotelic/mercurius-postgraphile#readme",
   "dependencies": {
-    "@graphql-tools/stitch": "^7.5.3",
+    "@graphql-tools/stitch": "^8.3.1",
     "fastify-plugin": "^3.0.0",
     "postgraphile": "^4.12.3"
   },
