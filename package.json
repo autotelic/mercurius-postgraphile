@@ -41,7 +41,7 @@
     "fastify": "^3.0.0",
     "fastify-cli": "^2.5.1",
     "lint-staged": "^10.2.11",
-    "mercurius": "^7.9.1",
+    "mercurius": "^8.2.1",
     "pg": "^8.6.0",
     "standard": "^16.0.3",
     "tap": "^15.0.6"
