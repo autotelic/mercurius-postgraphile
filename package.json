@@ -40,7 +40,7 @@
     "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
     "fastify": "^3.0.0",
     "fastify-cli": "^2.5.1",
-    "lint-staged": "^10.2.11",
+    "lint-staged": "^12.1.2",
     "mercurius": "^7.9.1",
     "pg": "^8.6.0",
     "standard": "^16.0.3",
