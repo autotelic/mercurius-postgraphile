@@ -43,7 +43,7 @@
     "lint-staged": "^12.3.2",
     "mercurius": "^7.9.1",
     "pg": "^8.6.0",
-    "standard": "^16.0.3",
+    "standard": "^17.0.0",
     "tap": "^15.0.6"
   },
   "lint-staged": {
